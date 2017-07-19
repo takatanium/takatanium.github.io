@@ -1,0 +1,3 @@
+[submodule "Basic-Portfolio"]
+	path = Basic-Portfolio
+	url = git@github.com:takatanium/Basic-Portfolio.git
