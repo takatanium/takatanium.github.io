@@ -1,32 +1,177 @@
-<!-- Reset.css -->
-<!DOCTYPE html>
-<html lang="en-us">
+<!doctype html> 
+<html lang="en"> 
+<head> 
+	<meta charset="UTF-8" />
+    <title>Project Musubi Rough Gameplay</title>
+    <script src="//cdn.jsdelivr.net/phaser/2.2.2/phaser.min.js"></script>
+    <style type="text/css">
+        body {
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
 
-  <head>
+<script type="text/javascript">
 
-    <meta charset="UTF-8">
-    <title>Example Page</title>
-    <!-- Once a reset.css is used uncomment the following line to see how this stylesheet works-->
-    <!--Try enabling and then disabling it more than once.-->
-    <link rel="stylesheet" href="reset.css">
+var game = new Phaser.Game(800, 600, Phaser.CANVAS, 'musu-gameplay', { preload: preload, create: create, update: update });
+
+function preload() {
+    game.load.image('sky', 'assets/sky.png');
+    game.load.image('ground', 'assets/platform.png');
+    game.load.image('star', 'assets/star.png');
+    game.load.spritesheet('sonic', 'assets/sonic.png', 24, 29);
+    game.load.spritesheet('dude', 'assets/dude.png', 32, 48);
+}
+
+var player;
+var enemy;
+var platforms;
+var cursors;
+var enemyText;
+
+function create() {
     
-  </head>
+    game.physics.startSystem(Phaser.Physics.ARCADE);
+    //game.physics.startSystem(Phaser.Physics.P2JS);
+    
+    game.add.sprite(0, 0, 'sky');
 
-  <body>
+    platforms = game.add.group();
+    platforms.enableBody = true;
 
-  <h1>This is a header 1</h1>
+    var ground = platforms.create(0, game.world.height - 64, 'ground');
+    ground.scale.setTo(2, 2);
+    ground.body.immovable = true;
 
-  <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Accusamus labore ut, eum! Repellat, beatae dolorem minus sapiente iste nihil explicabo impedit eos consequuntur illum corporis autem vitae cum aperiam mollitia.</p>
+    var ledge = platforms.create(700, 505, 'ground');
+    ledge.body.immovable = true;
 
-  <h2>This is a header 2</h2>
+    ledge = platforms.create(-200, 505, 'ground');
+    ledge.body.immovable = true;
+    
+    ledge = platforms.create(250, 430, 'ground');
+    ledge.body.immovable = true;
+    
+    ledge = platforms.create(700, 400, 'ground');
+    ledge.body.immovable = true;
+    
+    ledge = platforms.create(250, 330, 'ground');
+    ledge.body.immovable = true;
 
-  <ul>
-    <li>Test</li>
-    <li>Test</li>
-    <li>Test</li>
-    <li>Test</li>
-  </ul>
+    player = game.add.sprite(32, game.world.height - 150, 'sonic');
+    player.animations.add('wait', [0], 1);
+    player.animations.add('fly', [11], 1);
+    player.animations.add('roll', [6, 7, 8, 9], 4);
+    player.anchor.setTo(.5, 1);
+    
+    game.physics.enable(player);
 
-  </body>
+    player.body.bounce.x = 0.23;
+    //player.body.bounce.set(1);
+    player.body.gravity.y = 200;
+    player.body.collideWorldBounds = true;
+    player.body.maxVelocity.x = 400; 
+    player.body.drag.x = 300; //friction
+    
+    enemy = game.add.sprite(300, game.world.height - 80, 'dude');
+    enemy.anchor.setTo(.5, 1);
+    game.physics.enable(enemy);
+    enemy.body.bounce.set(1);
+    enemy.body.gravity.y = 200;
+    enemy.animations.add('left', [0, 1, 2, 3], 5, true);
+    enemy.animations.add('right', [5, 6, 7, 8], 5, true);
+    enemy.body.velocity.x = 50;
+    enemy.body.maxVelocity.x = 50;
+    enemy.body.collideWorldBounds = true;
+    
+    //User Input
+    cursors = game.input.keyboard.createCursorKeys();
+}
 
+function update() {
+    
+    var hitPlatform = game.physics.arcade.collide(player, platforms);
+    var enemyHitPlatfrom = game.physics.arcade.collide(enemy, platforms);
+    var playerHitEnemy = game.physics.arcade.collide(enemy, player);
+    var groundAcc = 500;
+    var airAcc = 150;
+    var recoilY = player.body.velocity.x * 2.3;
+    
+    //Player Movement
+    player.body.acceleration.x = 0;
+    
+    if (game.input.pointer1.isDown){
+        var posX = Math.floor(game.input.x/(game.width/2));
+        console.log(posX);
+    }
+    
+    if (cursors.left.isDown || (Math.floor(game.input.x/(game.width/2)) == 0 && game.input.pointer1.isDown)) {
+    //if (cursors.left.isDown) {
+
+        if (hitPlatform) {
+            player.body.acceleration.x += -groundAcc;
+        }
+        else {
+            player.body.acceleration.x += -airAcc;
+        }
+        player.animations.play('roll', 20, true);
+        player.scale.x = -1;
+    }
+    else if (cursors.right.isDown || (Math.floor(game.input.x/(game.width/2)) == 1 && game.input.pointer1.isDown)) {
+    //else if (cursors.right.isDown || game.input.pointer1.isDown) {
+
+        if (hitPlatform) {
+            player.body.acceleration.x += groundAcc;
+        }
+        else {
+            player.body.acceleration.x += airAcc;
+        }
+        player.animations.play('roll', 20, true);
+        player.scale.x = 1;
+    }
+    
+    if (player.body.velocity.x == 0) {
+        if (!hitPlatform) {
+            player.animations.play('fly', 1, true);
+        }
+        else {
+            player.animations.play('wait', 1, true);
+        }
+    }
+    
+    //Bounce off wall translating velocity into vertical motion
+    if (player.body.touching.right) {
+        player.body.velocity.y = recoilY;
+    }
+    else if (player.body.touching.left) {
+        player.body.velocity.y = -recoilY;
+    }
+    
+    //Enemy movement
+    if (enemy.body.velocity.x >= 0) {
+        enemy.animations.play('right');
+        enemy.body.acceleration.x = 100;
+    }
+    else if (enemy.body.velocity.x < 0) {
+        enemy.animations.play('left');
+        enemy.body.acceleration.x = -100;
+    }
+    
+    //Collisions between player and enemy
+    
+    if (playerHitEnemy) {
+        if (enemy.body.touching.left) {
+            
+        }
+        //enemyText = game.add.text(0.5, 0, Math.floor(Math.abs(player.body.velocity.x)), {font: "16px Arial", fill: "#000000"});
+        //enemy.addChild(enemyText);
+        //enemyText.anchor.set(0.5, 2.5);
+    }
+    
+}
+
+</script>
+
+</body>
 </html>
